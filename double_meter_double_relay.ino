@@ -286,34 +286,6 @@ for(int p=0;p<2;p++){
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   lcd.setCursor(0,0);
   lcd.print("slope = ");
   lcd.print(slope[p], 3);
