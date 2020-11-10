@@ -8,11 +8,6 @@ This repository contains two scripts written for the arduino. They are meant to 
 
 There are two operation modes: a single pH meter with two valves (one for adding acid and another for adding base) onto the same solution; And two pH meters each controlling one valve. In the second case you have two different solutions, and can only add either acid or base to each (your choice). If you need to add acid and base to both solutions (4 total valves), a change in the code, wiring and box is necessary. An easier way to do this would be to simply make two separate systems, each with one pH meter and two valves.
 
-## What do the different files mean?
-
-Each script has two similar files: a heavily commented one (single\_meter\_double\_relay\_commented.ino and double\_meter\_double\_relay\_commented.ino), and one with comments only on the header, to help you. Use which ever one you want, the arduino compiler doesn't care. I include them both because the heavily commented one is better for people with ought experience (even with no programming experience, if you read the comments you should be able to get the gist of everything, I hope...) and the streamlined one is much simpler to read for people experienced in arduino. I put the commented ones in the folder "Documentation", to avoid confusion.
-
-
 ## How do I set things up?
 
 Assuming you have read the article, all you need to do is change the relevant variables at the top of the file and upload it to the arduino. If you don't know how to use the arduino IDE, refer to https://www.arduino.cc/en/Guide/ArduinoUno . After opening the script you downloaded from this repository and changing the variables according your needs, follow instructions starting in "Select your board type and port". After the code has been uploaded to the arduino you don't need the computer anymore, except for making changes to the variables.

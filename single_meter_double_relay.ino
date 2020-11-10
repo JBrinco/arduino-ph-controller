@@ -26,47 +26,47 @@ int equilibration_time = 3000; //The time after the acid or base solution has be
 
 
 //General variable assignment. Don't mess with these unless you know what you are doing!
-const int analogInPin = A1;
-unsigned long int sumvalue;
-int temp,cal_temp;
-int analog_values[10];
-float cal_voltage[3];
-int cal_analog_values[10];
-float sum_ph; float sum_v; float sum_ph2; float sum_v2; float sum_ph_v; float sstot; float ssres; float slope; float origin;
-int points =3;
-float est_ph[3];
+const int analogInPin = A1;     //Analog pH signal comes from A1. Make sure you plug it correctly, or change to another number if you really must
+unsigned long int sumvalue;     //Sum value of 10 analog measures taken
+int temp,cal_temp;   //These variables are used for sorting the array when smoothing the detected analog input, and removing outliers
+int analog_values[10];     //An array of 10 analog values taken
+float cal_voltage[3];   //The measured voltages for the calibration solutions!
+int cal_analog_values[10];   //Same as analog_values, but this variable is only used for calibration
+float sum_ph; float sum_v; float sum_ph2; float sum_v2; float sum_ph_v; float sstot; float ssres; float slope; float origin;  //Variables used in the calibration
+int points =3;  //number of points in calibration. Don't just change this number and put more values in cal_solution_ph and expect it to work...
+float est_ph[3]; //for r squared calculation
 float rsquared;
-int too_acid = 7;
-int too_basic = 8;
+int too_acid = 7;    //The relay that releases basic solution (when the medium is too acid) is connected to digital pin 7 of the arduino. You can change this
+int too_basic = 8;   //The relay that releases acid solution (when the medium is too basic) is connected to digital pin 8 of the arduino. You can change this as well.
 float average_ph;
-bool need_calibration = true;
+bool need_calibration = true; //Will calibrate when the instrument is turned on. Will not work with ought calibration!
 
 
 
-
+///////LCD STUFF///////
 
 #include <LiquidCrystal.h>
 
-
+// initialize the library with the numbers of the interface pins. This is standard.
 LiquidCrystal  lcd(12, 11, 5, 4, 3, 2);
 
 
 void setup() {
- Serial.begin(9600);
+ Serial.begin(9600); //Begins the serial for output. The system is designed to use the LCD, but you can still get your readings on the serial!
 
 
+////OUTPUT FOR RELAY////////
+
+pinMode(too_acid, OUTPUT); // Setting the output for the pin that controls the base adding relay
+pinMode(too_basic, OUTPUT);  //Setting the output for the pin that controls the acid adding relay
+
+digitalWrite(too_acid, LOW);   //The relay "off" mode is receiving current. The "on" mode is not receiving current. You have to connect the valve accordingly in the other side of the relay (normally open or normally closed).
+digitalWrite(too_basic, LOW);  //Same
 
 
-pinMode(too_acid, OUTPUT);
-pinMode(too_basic, OUTPUT);
+ lcd.begin(16,2); // Initializing LCD. The size is 16 by 2.
 
-digitalWrite(too_acid, LOW);
-digitalWrite(too_basic, LOW);
-
-
- lcd.begin(16,2);
-
-lcd.home ();
+lcd.home (); // Setting Cursor at Home i.e. 0,0
 
 
 
@@ -76,14 +76,16 @@ lcd.home ();
 void loop() {
 
 
+////////////////////////////////////////////////////////////////////////
+////////////////////////////CALIBRATION/////////////////////////////
 
-
-
-if (need_calibration)
+if (need_calibration)     //Entire calibration is nested in this if loop. After it calibrates, it sets need_calibration to false.
 	{
 
+ //Initial message requesting calibration (Change to a more polite message when sharing the code. Or don't. I like it this way.)
 
-	lcd.setCursor(0,0);
+  Serial.print("I need to calibrate myself!");
+	lcd.setCursor(0,0);               
 	lcd.print("I need to cali-");
 	lcd.setCursor(0,1);
 	lcd.print("brate myself!");
@@ -92,30 +94,38 @@ if (need_calibration)
 
 
 
-	for(int a=seconds_waiting;a>0;a--)
+	for(int i=seconds_waiting;i>0;i--)                //first pH read
 		{
+     Serial.print("\n Place pH  ");
+    Serial.print(cal_solution_ph[0]);
+    Serial.print("\t Reading in ");
+    Serial.print(i);
+    Serial.print("Seconds");
 		lcd.setCursor(0,0);
  		lcd.print("place pH ");
  		lcd.print(cal_solution_ph[0]);
  		lcd.setCursor(0,1);
  		lcd.print("Read in ");
- 		lcd.print(a);
+ 		lcd.print(i);
  		lcd.print(" sec");
  		delay(1000);
  		lcd.clear();
-  		lcd.print("Reading");
+  		
 		}
 
-	for(int b=0;b<10;b++)
+   Serial.print("\n Reading");
+   lcd.print("Reading");
+
+	for(int b=0;b<10;b++)  //Makes 10 analog reads, waiting however many milisecs you set in "measure_delay" between each reading, and stores them in array cal_analog_values
  		{
 		cal_analog_values[b]=analogRead(analogInPin);
 		delay(measure_delay);
 
-
-
-
-
-
+		//lcd.setCursor(0,0);                   //This block is here for debuging purposes. Use it to check the analog value reading
+		//lcd.print("Analog Value");
+		//lcd.setCursor(0,1);
+		//lcd.print(cal_analog_values[b]);
+		//delay(1000);
 		}
 
 	for(int i=0;i<9;i++)
@@ -132,15 +142,20 @@ if (need_calibration)
  		}
 
  	sumvalue=0;
- 	for(int i=2;i<8;i++)
- 	sumvalue+=cal_analog_values[i];
- 	cal_voltage[0]=(float)sumvalue*5.0/1024/6;
- 	delay(1000);
+ 	for(int i=2;i<8;i++)   //Because the array is sorted, it removes the 2 smallest and 2 largest values (index [0,1,8,9]). The sorting above and this only serve to smooth de output value, and remove outliers!
+ 	sumvalue+=cal_analog_values[i]; //Adds each value of the array
+ 	cal_voltage[0]=(float)sumvalue*5.0/1024/6;  //Converts analog to voltage. It is divided by 6 to obtain the average value, because we are converting the sum of 6 analog values
+ 	delay(1000);   //voltage reading for the first calibration solution is stored in cal_voltage[0]
 
+ lcd.clear();
 
-
-	for(int i=seconds_waiting;i>0;i--)
+	for(int i=seconds_waiting;i>0;i--)    //Reading for the second calibration solution!
 		{
+    Serial.print("\n Place pH  ");
+    Serial.print(cal_solution_ph[1]);
+    Serial.print("\t Reading in ");
+    Serial.print(i);
+    Serial.print("Seconds");
 		lcd.setCursor(0,0);
 		lcd.print("place pH ");
 		lcd.print(cal_solution_ph[1]);
@@ -150,10 +165,12 @@ if (need_calibration)
  		lcd.print(" sec");
  		delay(1000);
  		lcd.clear();
-  		lcd.print("Reading");
 		}
+   
+  Serial.print("\n Reading");
+  lcd.print("Reading");
 
-	for(int b=0;b<10;b++)
+	for(int b=0;b<10;b++)                            ///Everything is equal to above, except that the final value is stored in the second index of the array cal_voltage
 		{
 		cal_analog_values[b]=analogRead(analogInPin);
 		delay(measure_delay);
@@ -176,16 +193,21 @@ if (need_calibration)
  		sumvalue+=cal_analog_values[i];
  		cal_voltage[1]=(float)sumvalue*5.0/1024/6;
 
-	delay(1000);
+	delay(1000);   //voltage reading for second calibration solution is stored in cal_voltage[1]
 
 
 
 
-	for(int i=seconds_waiting;i>0;i--)
+	for(int i=seconds_waiting;i>0;i--)     //Exactly the same, for the third calibration solution
 		{
+    Serial.print("\n Place pH  ");
+    Serial.print(cal_solution_ph[2]);
+    Serial.print("\t Reading in ");
+    Serial.print(i);
+    Serial.print("Seconds");
 		lcd.setCursor(0,0);
  		lcd.print("place pH ");
-  		lcd.print(cal_solution_ph[2]);
+  	lcd.print(cal_solution_ph[2]);
  		lcd.setCursor(0,1);
  		lcd.print("Read in ");
  		lcd.print(i);
@@ -218,19 +240,19 @@ if (need_calibration)
  		sumvalue+=cal_analog_values[i];
  		cal_voltage[2]=(float)sumvalue*5.0/1024/6;
 
- 	delay(1000);
+ 	delay(1000);   //voltage reading for ph=2 is stored in cal_voltage[2]
 
 
 
 
 
+////////////////////////////CALCULATION FOR CALIBRATION//////////////////////////////////////
 
 
 
 
 
-
-	for(int c=0, d=0;  (c<3) && (d<3); c++, d++)
+	for(int c=0, d=0;  (c<3) && (d<3); c++, d++)   //volt=v This for loop reads from two different arrays: cal_solution_ph[] and cal_voltage[], to calculate some values necessary for the calibration
 		{
   		sum_ph+=cal_solution_ph[c];
   		sum_v+=cal_voltage[d];
@@ -240,21 +262,21 @@ if (need_calibration)
 
 		}
 
-
+	//pH = y and volt = x
 
 	slope = ((points * sum_ph_v) - (sum_ph*sum_v)) / ((points * sum_v2) - (sum_v * sum_v));
 	origin = ((sum_v2 * sum_ph) - (sum_v * sum_ph_v)) / ((points * sum_v2) - (sum_v * sum_v));
 
+	//R squared calculation
 
-
-	for(int y=0;  (y<3); y++)
+	for(int y=0;  (y<3); y++)    //Variables necessary for SS calculations
 		{
   		est_ph[y] = (slope * cal_voltage[y]) + origin;
-  		average_ph = sum_ph / points;
+  		average_ph = sum_ph / points;  //This is the average of real ph values from the standard solutions
 
 		}
 
-	for(int r=0;  (r<3); r++)
+	for(int r=0;  (r<3); r++) // total sum of squares (sstot) and residual sum of squares (ssres) calculation
 		{
  		sstot= sstot + ((cal_solution_ph[r] - average_ph)*(cal_solution_ph[r] - average_ph));
  		ssres = ssres + ((cal_solution_ph[r] - est_ph[r])*(cal_solution_ph[r] - est_ph[r]));
@@ -263,28 +285,76 @@ if (need_calibration)
 
 	rsquared = 1- (ssres / sstot);
 
+///////////////////////////////////////////CALIBRATION RESULTS DISPLAY
 
 
 
-
-	if (rsquared<accepted_error)
+	if (rsquared<accepted_error)      //Gives a warning if the coefficient of determination is not satisfactory. You set what "satisfactory" means by changing "accepted_error" at the top of the script.
 		{
+    Serial.print("\n Recalibration Recommended");
 		lcd.clear();
 		lcd.setCursor(0,0);
 		lcd.print("Recalibration");
 		lcd.setCursor(0,1);
  		lcd.print("Recommended");
-		lcd.print(cal_voltage[0]);
 		delay(5000);
 		lcd.clear();
 		}
 
+	 //For displaying the results. It will give the voltage readings for each pH and the calibration results. If you don't care about that stuff, just comment everything except the part you want
 
+  //Serial.print("\n Reading for solution with pH = ");
+  //Serial.print(cal_solution_ph[0]);
+  //Serial.print("Is = ");
+  //Serial.print(cal_voltage[0]);
+  //Serial.print("V");
+  
+	//lcd.setCursor(0,0);
+	//lcd.print("pH  ");
+	//lcd.print(cal_solution_ph[0]);
+	//lcd.print(" read");
+	//lcd.setCursor(0,1);
+	//lcd.print("Volt = ");
+	//lcd.print(cal_voltage[0]);
+	//delay(5000);
+	//lcd.clear();
 
+   //Serial.print("\n Reading for solution with pH = ");
+  //Serial.print(cal_solution_ph[1]);
+  //Serial.print("Is = ");
+  //Serial.print(cal_voltage[1]);
+  //Serial.print("V");
 
+	//lcd.setCursor(0,0);
+	//lcd.print("pH  ");
+	//lcd.print(cal_solution_ph[1]);
+	//lcd.print(" read");
+	//lcd.setCursor(0,1);
+	//lcd.print("Volt = ");
+	//lcd.print(cal_voltage[1]);
+	//delay(5000);
+	//lcd.clear();
 
+   //Serial.print("\n Reading for solution with pH = ");
+  //Serial.print(cal_solution_ph[2]);
+  //Serial.print("Is = ");
+  //Serial.print(cal_voltage[2]);
+  //Serial.print("V");
 
+	//lcd.setCursor(0,0);
+	//lcd.print("pH  ");
+	//lcd.print(cal_solution_ph[2]);
+	//lcd.print(" read");
+	//lcd.setCursor(0,1);
+	//lcd.print("Volt = ");
+	//lcd.print(cal_voltage[2]);
+	//delay(5000);
+	//lcd.clear();
 
+   Serial.print("\n Slope =  ");
+  Serial.print(slope, 3);
+  Serial.print("\t Origin =   ");
+  Serial.print(origin, 3);
 
 	lcd.setCursor(0,0);
 	lcd.print("slope = ");
@@ -295,7 +365,12 @@ if (need_calibration)
 	delay(10000);
 	lcd.clear();
 
-	lcd.setCursor(0,0);
+//Do not comment this block if you want to see the coefficient of determination. This is very important!!! The script will run even with an awful R2, although you do get a warning (above)
+
+  Serial.print("\n Coeficient of determination =   ");
+  Serial.print(rsquared, 9);
+
+	lcd.setCursor(0,0);                    
 	lcd.print("Coef det (R2) = ");
 	lcd.setCursor(0,1);
 	lcd.print(rsquared, 9);
@@ -308,22 +383,28 @@ if (need_calibration)
 	need_calibration = false;
 }
 
-
-
-//////////////////END OF CALIBRATION////////////////////////////
-
+///////////////////////////////////END OF CALIBRATION////////////////////////////////////////////
 
 
 
 
- for(int i=0;i<10;i++)
+//////////////////////////////////////////////////////////////////////////////
+/////////////////////MEASURE AND VALVE CONTROL LOOP/////////////
+
+ for(int i=0;i<10;i++)  //Makes 10 analog reads, waiting 50 milisecs between each, and stores them in array analog_values
  	{
 	analog_values[i]=analogRead(analogInPin);
 	delay (measure_delay);
 
+ // lcd.setCursor(0,0);          //Debugging!
+ // lcd.print("Analog Value");   //Debugging!
+ // lcd.setCursor(0,1);          //Debugging! Uncomment these five lines if you have problems and want to check your analog input
+ // lcd.print(analog_values[i]); //Debugging!
+  //delay(1000);
+
 	}
 
- for(int i=0;i<9;i++)
+ for(int i=0;i<9;i++)   //This double for loop only organizes the values in the array analog_values[i] from smallest to largest!
  {
   for(int j=i+1;j<10;j++)
   {
@@ -338,24 +419,24 @@ if (need_calibration)
 
  sumvalue=0;
 
- for(int i=2;i<8;i++)
- sumvalue+=analog_values[i];
- float voltage=(float)sumvalue*5.0/1024/6;
+ for(int i=2;i<8;i++)   //Because the array is sorted, it removes the 2 smallest and 2 largest values (index [0,1,8,9]). The sorting above and this only serve to smooth de output value, and remove outliers!
+ sumvalue+=analog_values[i]; //Adds each value of the array
+ float voltage=(float)sumvalue*5.0/1024/6; // Transforms analog to digital. 1024 (Binary 111111111) corresponds to 5 volts. Divided by 6 to obtain the average (because it was a sum).
  float phvalue = (slope * voltage) + origin;
 
 
-
+// If pH is too high or too low, do something! Now!
  if (phvalue > ph_max) {
 
-	digitalWrite(too_basic, HIGH);
+	digitalWrite(too_basic, HIGH);                // If the pH is too high, remove current to relay "too_basic", as defined in the variables above, whence turning it "on".
 
 
-
+ //Print to serial
 	Serial.print("pH Value = ");
 	Serial.print(phvalue, 3);
 	Serial.print("\tAdding acid! ");
 
-
+//Print to LCD
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("pH= ");
@@ -365,14 +446,14 @@ if (need_calibration)
 
 	delay(valve_open_time);
 
-	digitalWrite(too_basic, LOW);
+	digitalWrite(too_basic, LOW);   //Turn relay off again
 
-	delay(equilibration_time/2);
+	delay(equilibration_time/2);  //After the relay is turned off again, I divide the equilibration time in two, because otherwise there is too little time to read the actual pH value (just the time the relay is on). This way the pH value stays printed longer on the LCD.
 
-
+ //Print to serial
 	Serial.print("Waiting for equilibrium ");
 
-
+//Print to LCD
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("Waiting for ");
@@ -385,14 +466,14 @@ if (need_calibration)
   	}
   else if (phvalue <ph_min){
 
-	digitalWrite(too_acid, HIGH);
+	digitalWrite(too_acid, HIGH);              //If the pH is too low, remove current to relay "too_acid", as defined in the variables above, whence turning it "on".
 
-
+ //Print to serial
  	Serial.print("pH Value = ");
 	Serial.print(phvalue, 3);
  	Serial.print("\tAdding Base");
 
-
+//Print to LCD
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("pH= ");
@@ -403,14 +484,14 @@ if (need_calibration)
 
 	delay(valve_open_time);
 
-	digitalWrite(too_acid, LOW);
+	digitalWrite(too_acid, LOW);   //Turn relay off again
 
 	delay(equilibration_time/2);
 
-
+ //Print to serial
  	Serial.print("Waiting for equilibrium ");
 
-
+//Print to LCD
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("Waiting for ");
@@ -421,18 +502,20 @@ if (need_calibration)
 
   	}
 
- else {
+ else {                                          //Otherwise set both relays to on and print the pH and voltage value. The digitalwrite is probably redundant, but it does not hurt to have it here
 
 	digitalWrite(too_acid, LOW);
 	digitalWrite(too_basic, LOW);
 
-
+ //Print to serial
  	Serial.print("pH Value = ");
  	Serial.print(phvalue, 3);
- 	Serial.print("\tVoltage= ");
-	Serial.println(voltage, 3);
+  Serial.print("\t");
+  Serial.print(ph_min);
+  Serial.print(" < pH < ");
+  Serial.print(ph_max);
 
-
+//Print to LCD
 	lcd.clear();
 	lcd.setCursor(0,0);
 	lcd.print("pH= ");
@@ -445,7 +528,7 @@ if (need_calibration)
 	}
 
 
-delay(delay_between_measurements);
+delay(delay_between_measurements);// Wait a certain amount of time (in milisecs). The system should refresh the reading every x  miliseconds, plus the measure_delay * 10. (if the measure delay is 100 milisecs and this final delay is 200 milisecs, it will refresh every 1.2 seconds, roughly. This final delay can be reduced or increased to change the refresh rate.
 
 
 
