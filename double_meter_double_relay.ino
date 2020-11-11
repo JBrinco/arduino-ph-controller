@@ -9,7 +9,7 @@
 
 ////////////////CHANGE THESE VARIABLES ACCORDING TO YOUR NEED///////////////////////////////////////////////
 
-const int analogInPin[] ={A1, A1};     //Analog pH signal for sensor A and B. Make sure you plug it correctly, or change to another number if you really must
+const int analogInPin[] ={A1, A2};     //Analog pH signal for sensor A and B. Make sure you plug it correctly, or change to another number if you really must
 float ph_trigger_a = 8.0;   //The value of pH in sensor A after which something is done. You have to change the variable below to set if the system acts when the solution goes above or below this value.
 bool a_control_up = true; //If set to true, the system will turn the valve on when the pH goes above ph_trigger_a, to add acid. If set to false, it will turn the valve on when the pH goes below ph_trigger_a, to add base.
 float ph_trigger_b = 5.0;    //Same as above, for sensor B.
@@ -114,10 +114,10 @@ for(int p=0;p<2;p++){
     delay(1000);
     lcd.clear();
     }
-    
+
    Serial.print("\n Reading");
    lcd.print("Reading");
-  
+
 
   for(int b=0;b<10;b++)  //Makes 10 analog reads, waiting however many milisecs you set in "measure_delay" between each reading, and stores them in array cal_analog_values
     {
@@ -152,7 +152,7 @@ for(int p=0;p<2;p++){
 
 
   lcd.clear();
-  
+
   for(int i=seconds_waiting;i>0;i--)    //Reading for the second calibration solution!
     {
     Serial.print("\n Place pH  ");
@@ -306,7 +306,7 @@ for(int p=0;p<2;p++){
     }
 
    //For displaying the results. It will give the voltage readings for each pH and the calibration results. If you don't care about that stuff, just comment everything except the part you want
-  
+
 
   //Serial.print("\n Reading for solution with pH = ");
   //Serial.print(cal_solution_ph[0]);
@@ -358,7 +358,7 @@ for(int p=0;p<2;p++){
   //delay(5000);
   //lcd.clear();
 
-  
+
   Serial.print("\n Slope =  ");
   Serial.print(slope[p], 3);
   Serial.print("\t Origin =   ");
@@ -378,7 +378,7 @@ for(int p=0;p<2;p++){
   Serial.print("\n Coeficient of determination =   ");
   Serial.print(rsquared[p], 9);
 
-  lcd.setCursor(0,0);                    
+  lcd.setCursor(0,0);
   lcd.print("Coef det (R2) = ");
   lcd.setCursor(0,1);
   lcd.print(rsquared[p], 9);
