@@ -5,7 +5,7 @@
 
 ////////////////CHANGE THESE VARIABLES ACCORDING TO YOUR NEED///////////////////////////////////////////////
 
-const int analogInPin[] ={A1, A2};     //Analog signal for sensor A and B. Make sure you plug it correctly, or change to another number if you really must
+const int analogInPin[] ={A2, A2};     //Analog signal for sensor A and B. Make sure you plug it correctly, or change to another number if you really must
 int measure_delay = 50;    //The amount of time between measurements (in milisecs). No need to change this, unless you run into problems.
 int delay_for_volt_reading = 1400;  //Ammount of time between
 
@@ -16,7 +16,7 @@ int delay_for_volt_reading = 1400;  //Ammount of time between
 int analog_values[10];     //An array of 10 analog values taken
 float sumvalue;
 int temp;
-
+float voltage;
 
 ///////LCD STUFF///////
 
@@ -30,12 +30,10 @@ void setup() {
  Serial.begin(9600); //Begins the serial for output. The system is designed to use the LCD, but you can still get your readings on the serial!
 
 
-////OUTPUT FOR RELAY////////
 
 
  lcd.begin(16,2); // Initializing LCD. The size is 16 by 2.
  lcd.home (); // Setting Cursor at Home i.e. 0,0
-
 
 
 
@@ -58,11 +56,11 @@ void loop() {
   lcd.print("Place in pH=7");
   delay(14000);
 
-///////////CALIBRATION OF FIRST METER////////////////////////////////////////////
 
-float voltage=0;
+ ///////////CALIBRATION OF FIRST METER////////////////////////////////////////////
 
-while(voltage < 2.49 && voltage > 2.51){
+
+while(voltage < 2.49 || voltage > 2.51){
 
  for(int i=0;i<10;i++)
   {
@@ -105,14 +103,14 @@ while(voltage < 2.49 && voltage > 2.51){
 
 delay(delay_for_volt_reading);  //this ammount of time is used for you to be able to read the output
 
+
 }
 
   Serial.print("\n GOOD! The value is set!");
   lcd.setCursor(0,1);
   lcd.print("Calib Done!");
+  delay(5000);
 
-
-voltage = 0;
 
 
 
@@ -139,7 +137,7 @@ voltage = 0;
 
 
 
-while(voltage < 2.49 && voltage > 2.51){
+while(voltage < 2.49 || voltage > 2.51){
 
  for(int i=0;i<10;i++)
   {
@@ -187,7 +185,13 @@ delay(delay_for_volt_reading);  //this ammount of time is used for you to be abl
   Serial.print("\n GOOD! The value is set!");
   lcd.setCursor(0,1);
   lcd.print("Calib Done!");
-
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("You can now");
+   lcd.setCursor(0,1);
+  lcd.print("use the system!");
+  delay(1000000);
 
 
 
