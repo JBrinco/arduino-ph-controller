@@ -10,14 +10,13 @@
 ////////////////CHANGE THESE VARIABLES ACCORDING TO YOUR NEED///////////////////////////////////////////////
 
 const int analogInPin[] ={A1, A2};     //Analog pH signal for sensor A and B. Make sure you plug it correctly, or change to another number if you really must
-float ph_trigger_a = 8.0;   //The value of pH in sensor A after which something is done. You have to change the variable below to set if the system acts when the solution goes above or below this value.
+float ph_trigger_a = 5.0;   //The value of pH in sensor A after which something is done. You have to change the variable below to set if the system acts when the solution goes above or below this value.
 bool a_control_up = true; //If set to true, the system will turn the valve on when the pH goes above ph_trigger_a, to add acid. If set to false, it will turn the valve on when the pH goes below ph_trigger_a, to add base.
 float ph_trigger_b = 5.0;    //Same as above, for sensor B.
-bool b_control_up = false; //Exactly the same as above. If you want to stop the solution from going above ph_trigger_b, set to true.
+bool b_control_up = true; //Exactly the same as above. If you want to stop the solution from going above ph_trigger_b, set to true.
 float cal_solution_ph[] = {4.01, 7, 9.21}; //Your calibration solution pH's, by the order they are asked for. Mathematically it does not matter what you use or the order, but I do not recommend using only acid or basic values, nor drastic chenges (going from pH 4 direcly to 9). In order to calibrate with more points, some change to the code is necessary. Shoot me an e-mail if you have difficulties.
-bool need_calibration = true; //Will calibrate when the instrument is turned on. The system will not work with ought calibration!
 int measure_delay = 100;    //The amount of time between measurements (in milisecs). No need to change this, unless you run into problems.
-int seconds_waiting = 20;    // The amount of time it waits for you to put the meter in the calibration solution. Increase if you are slow, there is no shame :) The count down will be shown in the LCD: 20...19...18......
+int seconds_waiting = 40;    // The amount of time it waits for you to put the meter in the calibration solution. It is VERY importat that the probe has time to stabilize before the measurement is taken. Increase if you are slow, there is no shame :) The count down will be shown in the LCD: 20...19...18......
 int delay_for_ph_reading = 1000;  //The amount of time the system waits after it has read the pH and before it opens any valves. Increase if you are having trouble reading the pH measurments because they change too fast.
 float accepted_error = 0.990; // The minimum value for the coefficient of determination before the script recommends that you re-calibrate
 int valve_open_time = 1000; //The time in milisecs that the valve will be turned on after a reading outside the desired range is obtained. VERY IMPORTANT TO OPTIMIZE.
@@ -27,6 +26,7 @@ int equilibration_time = 3000; //The time after the acid or base solution has be
 
 //General variable assignment. Don't mess with these unless you know what you are doing!
 
+bool need_calibration = true; //Will calibrate when the instrument is turned on. The system will not work with ought calibration!
 int solution_a_valve = 7;    //The relay that responds to changes in pH sensor A is connected to digital pin 7 of the arduino. You can change this.
 int solution_b_valve = 8;   //The relay that responds to changes in pH sensor B is connected to digital pin 8 of the arduino. You can change this as well.
 unsigned long int sumvalue;     //Sum value of 10 analog measures taken
@@ -64,10 +64,6 @@ digitalWrite(solution_a_valve, LOW);   //The relay "off" mode is receiving curre
 digitalWrite(solution_b_valve, LOW);  //Same
 
 
- lcd.begin(16,2); // Initializing LCD. The size is 16 by 2.
-
-lcd.home (); // Setting Cursor at Home i.e. 0,0
-
 
 
 
@@ -76,8 +72,14 @@ lcd.home (); // Setting Cursor at Home i.e. 0,0
 void loop() {
 
 
+lcd.begin(16,2); // Initializing LCD. The size is 16 by 2.
+lcd.home (); // Setting Cursor at Home i.e. 0,0
+
+
+
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////CALIBRATION/////////////////////////////
+
 
 if (need_calibration)     //Entire calibration is nested in this if loop. After it calibrates, it sets need_calibration to false.
   {
