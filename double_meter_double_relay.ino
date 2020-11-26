@@ -1,5 +1,8 @@
- //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////pH controller with calibration//////////////////////////////////////////////////////////////////
+
+
+//Bug found when A was below and B was above. Did not have option of both being true. Confirm with other ifs
 
 // Email me: j.brinco@campus.fct.unl.pt
 // I recommend reading the whole code with comments to get an understanding of what is going on. It is very straightforward
@@ -932,6 +935,51 @@ digitalWrite(solution_b_valve, LOW);   //Turn relay off again
 
 }
 
+if (a_control_up and b_control_up){  //both are set to control up. Opens only B
+
+digitalWrite(solution_a_valve, LOW);
+digitalWrite(solution_b_valve, HIGH);
+
+//Print to serial
+  Serial.print("\n pH A = ");
+  Serial.print(phvalue[0], 3);
+   Serial.print("\n pH B = ");
+  Serial.print(phvalue[1], 3);
+  Serial.print("\tCorrecting pH! ");
+
+
+//Print to LCD
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("pH A= ");
+  lcd.print(phvalue[0]);
+   lcd.setCursor(0,1);
+  lcd.print("pH B= ");
+  lcd.print(phvalue[1]);
+  lcd.print(" Open");
+
+delay(valve_open_time);
+
+  digitalWrite(solution_a_valve, LOW);
+digitalWrite(solution_b_valve, LOW);   //Turn relay off again
+
+ delay(equilibration_time/2);
+
+//Print to serial
+  Serial.print("Waiting for equilibrium in B");
+
+//Print to LCD
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("pH A= ");
+  lcd.print(phvalue[0]);
+  lcd.setCursor(0,1);
+  lcd.print("Equilibrating");
+
+  delay(equilibration_time/2);
+
+
+}
 
 
 }
