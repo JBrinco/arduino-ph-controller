@@ -4,7 +4,7 @@
 
 ## What is it?
 
-This repository contains two scripts written for the arduino. They are meant to be used as specified in the article *TO BE ADDED*. You should setup the wiring and peripherals as explained in the article.
+This repository contains two scripts written for the arduino.
 
 There are two operation modes: a single pH meter with two valves (one for adding acid and another for adding base) onto the same solution; And two pH meters each controlling one valve. In the second case you have two different solutions, and can only add either acid or base to each (your choice). If you need to add acid and base to both solutions (4 total valves), a change in the code, wiring and box is necessary. An easier way to do this would be to simply make two separate systems, each with one pH meter and two valves.
 
